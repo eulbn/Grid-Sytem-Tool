@@ -2,14 +2,16 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
-
+using System.Linq;
 
 
 
 public class GridSnapSystem : EditorWindow
 {
 
+    private List<Transform> trackOfSelectedTransforms;
     private List<Vector3> trackOfSelectedTransformsPosition;
+
     private float somevalue = 3.343f;
     enum GridOrientation
     {
@@ -46,47 +48,95 @@ public class GridSnapSystem : EditorWindow
 
     void OnEnable()
     {
-        trackOfSelectedTransformsPosition = new List<Vector3>();
+        this.trackOfSelectedTransforms = new List<Transform>();
+        this.trackOfSelectedTransformsPosition = new List<Vector3>();
         SceneView.duringSceneGui += this.OnSceneGUI;
-        Selection.selectionChanged += this.ReassignTransfromsPosition;
+        //Selection.selectionChanged += this.ReassignTransfromsPosition;
     }
 
     void OnDisable()
     {
-        trackOfSelectedTransformsPosition.Clear();
-        trackOfSelectedTransformsPosition = null;
+        this.trackOfSelectedTransforms.Clear();
+        this.trackOfSelectedTransformsPosition.Clear();
+        this.trackOfSelectedTransforms = null;
+        this.trackOfSelectedTransformsPosition = null;
         SceneView.duringSceneGui -= this.OnSceneGUI;
-        Selection.selectionChanged -= this.ReassignTransfromsPosition;
+        //Selection.selectionChanged -= this.ReassignTransfromsPosition;
     }
 
 
     void OnSceneGUI(SceneView sceneView)
     {
+
+
         this.SetGrid(gridSize, gridCellSize, gridColor);
 
         foreach (var _transfrom in Selection.transforms)
         {
-            if (this.hasSelectedPositionChanged())
+            if (this.hasSelectedPositionChanged() && this.RefernceCheck())
             {
+                Debug.Log("Why");
                 _transfrom.position = this.SnaptoGrid(_transfrom.position, gridSize, gridCellSize, gridOrientation);
             }
 
             this.Highlights(gridCellSize, gridSize, _transfrom);
         }
     }
-    
-    void ReassignTransfromsPosition()
-    {
-        trackOfSelectedTransformsPosition.Clear();
 
+    private void OnSelectionChange()
+    {
+        this.trackOfSelectedTransforms.Clear();
+        this.trackOfSelectedTransformsPosition.Clear();
         foreach (Transform _transform in Selection.transforms)
         {
+            this.trackOfSelectedTransforms.Add(_transform);
             this.trackOfSelectedTransformsPosition.Add(_transform.position);
         }
+        Debug.Log("Position Changed" + this.trackOfSelectedTransforms.Count);
     }
+
 
     bool hasSelectedPositionChanged()
     {
+        List<Vector3> temSelectedTransfroms = new List<Vector3>();
+        foreach (Transform _transform in Selection.transforms)
+        {
+            temSelectedTransfroms.Add(_transform.position);
+        }
+
+
+        if (temSelectedTransfroms.Count != this.trackOfSelectedTransformsPosition.Count)
+        {
+            Debug.Log("Position Changed" + temSelectedTransfroms.Count);
+            Debug.Log("Position Changed" + this.trackOfSelectedTransformsPosition.Count);
+
+            return true;
+
+        }
+
+        for (int i = 0; i < temSelectedTransfroms.Count; i++)
+        {
+            if (!temSelectedTransfroms[i].Equals(this.trackOfSelectedTransformsPosition[i]))
+            {
+                Debug.Log("Position Changed" + temSelectedTransfroms[i]);
+                Debug.Log("Position Changed" + this.trackOfSelectedTransformsPosition[i]);
+
+                return true;
+
+            }
+        }
+
+        return false;
+
+
+       /* if (temSelectedTransfroms.SequenceEqual(this.trackOfSelectedTransformsPosition))
+            return false;
+        else
+            return true;
+
+
+
+
         Transform[] temSelectedTransfroms = Selection.transforms;
         for (int i = 0; i < temSelectedTransfroms.Length; i++)
         {
@@ -99,13 +149,31 @@ public class GridSnapSystem : EditorWindow
             }
             else
             {
-                return false;
+                return true;
             }
         }
-        return false;
+        return false;*/
     }
 
+    bool RefernceCheck()
+    {
+        List<Transform> temSelectedTransfroms = new List<Transform>();
+        foreach (Transform _transform in Selection.transforms)
+        {
+            temSelectedTransfroms.Add(_transform);
+        }
 
+        if (temSelectedTransfroms.Count != this.trackOfSelectedTransforms.Count)
+            return false;
+
+        for (int i = 0; i < temSelectedTransfroms.Count; i++)
+        {
+            if (!temSelectedTransfroms[i].Equals(this.trackOfSelectedTransforms[i]))
+                return false;
+        }
+
+        return true;
+    }
 
 
     //-----------------------------------Grid Snaping-------------------------------------------
