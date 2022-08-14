@@ -8,26 +8,25 @@ using System.Linq;
 
 public class GridSnapSystem : EditorWindow
 {
-
-    private List<Transform> trackOfSelectedTransforms;
-    private List<Vector3> trackOfSelectedTransformsPosition;
-
-    private float somevalue = 3.343f;
     enum GridOrientation
     {
         xy, yz, zx, xyz
     }
 
     static GridOrientation gridOrientation = new GridOrientation();
+    static Color gridColor = Color.green;
+    static int gridSize = 10;
+    static float gridCellSize = 5;
 
-    Color gridColor;
-    int gridSize = 100;
-    float gridCellSize = 20;
 
-    [MenuItem("Window/GridSnapSystem")]
+    private List<Transform> trackOfSelectedTransforms;
+    private List<Vector3> trackOfSelectedTransformsPosition;
+
+    
+
+    [MenuItem("Window/Grid Snap System")]
     static void Init()
     {
-        // Get existing open window or if none, make a new one:
         GridSnapSystem window = (GridSnapSystem)GetWindow(typeof(GridSnapSystem));
         window.Show();
     }
@@ -40,8 +39,6 @@ public class GridSnapSystem : EditorWindow
         gridColor = EditorGUILayout.ColorField("Grid Color", gridColor);
         gridOrientation = (GridOrientation)EditorGUILayout.Popup("Orientation", (int)gridOrientation, System.Enum.GetNames(typeof(GridOrientation)));
 
-
-
         SceneView.RepaintAll();
     }
 
@@ -51,7 +48,6 @@ public class GridSnapSystem : EditorWindow
         this.trackOfSelectedTransforms = new List<Transform>();
         this.trackOfSelectedTransformsPosition = new List<Vector3>();
         SceneView.duringSceneGui += this.OnSceneGUI;
-        //Selection.selectionChanged += this.ReassignTransfromsPosition;
     }
 
     void OnDisable()
@@ -61,25 +57,20 @@ public class GridSnapSystem : EditorWindow
         this.trackOfSelectedTransforms = null;
         this.trackOfSelectedTransformsPosition = null;
         SceneView.duringSceneGui -= this.OnSceneGUI;
-        //Selection.selectionChanged -= this.ReassignTransfromsPosition;
     }
 
 
     void OnSceneGUI(SceneView sceneView)
     {
-
-
-        this.SetGrid(gridSize, gridCellSize, gridColor);
+        this.SetGrid();
 
         foreach (var _transfrom in Selection.transforms)
         {
             if (this.hasSelectedPositionChanged() && this.RefernceCheck())
             {
-                Debug.Log("Why");
-                _transfrom.position = this.SnaptoGrid(_transfrom.position, gridSize, gridCellSize, gridOrientation);
+                _transfrom.position = this.SnaptoGrid(_transfrom.position);
             }
-
-            this.Highlights(gridCellSize, gridSize, _transfrom);
+            this.Highlights(_transfrom);
         }
     }
 
@@ -92,7 +83,6 @@ public class GridSnapSystem : EditorWindow
             this.trackOfSelectedTransforms.Add(_transform);
             this.trackOfSelectedTransformsPosition.Add(_transform.position);
         }
-        Debug.Log("Position Changed" + this.trackOfSelectedTransforms.Count);
     }
 
 
@@ -104,55 +94,20 @@ public class GridSnapSystem : EditorWindow
             temSelectedTransfroms.Add(_transform.position);
         }
 
-
         if (temSelectedTransfroms.Count != this.trackOfSelectedTransformsPosition.Count)
         {
-            Debug.Log("Position Changed" + temSelectedTransfroms.Count);
-            Debug.Log("Position Changed" + this.trackOfSelectedTransformsPosition.Count);
-
             return true;
-
         }
 
         for (int i = 0; i < temSelectedTransfroms.Count; i++)
         {
             if (!temSelectedTransfroms[i].Equals(this.trackOfSelectedTransformsPosition[i]))
             {
-                Debug.Log("Position Changed" + temSelectedTransfroms[i]);
-                Debug.Log("Position Changed" + this.trackOfSelectedTransformsPosition[i]);
-
                 return true;
-
             }
         }
 
         return false;
-
-
-       /* if (temSelectedTransfroms.SequenceEqual(this.trackOfSelectedTransformsPosition))
-            return false;
-        else
-            return true;
-
-
-
-
-        Transform[] temSelectedTransfroms = Selection.transforms;
-        for (int i = 0; i < temSelectedTransfroms.Length; i++)
-        {
-            if (i < this.trackOfSelectedTransformsPosition.Count)
-            {
-                if (!this.trackOfSelectedTransformsPosition[i].Equals(temSelectedTransfroms[i].position))
-                {
-                    return true;
-                }
-            }
-            else
-            {
-                return true;
-            }
-        }
-        return false;*/
     }
 
     bool RefernceCheck()
@@ -177,22 +132,22 @@ public class GridSnapSystem : EditorWindow
 
 
     //-----------------------------------Grid Snaping-------------------------------------------
-    private Vector3 SnaptoGrid(Vector3 _vector, int _gridSize, float _gridCellSize, GridOrientation _gridOrientation)
+    private Vector3 SnaptoGrid(Vector3 _vector)
     {
-        if(_gridSize % 2 == 0)
+        if(GridSnapSystem.gridSize% 2 == 0)
         {
              
             Vector3 roundedOffVector = new Vector3(
-                Mathf.Round(_vector.x / _gridCellSize) * _gridCellSize,
-                Mathf.Round(_vector.y / _gridCellSize) * _gridCellSize,
-                Mathf.Round(_vector.z / _gridCellSize) * _gridCellSize
+                Mathf.Round(_vector.x / gridCellSize) * gridCellSize,
+                Mathf.Round(_vector.y / gridCellSize) * gridCellSize,
+                Mathf.Round(_vector.z / gridCellSize) * gridCellSize
             );
 
-            if (_gridOrientation == GridOrientation.xy)
+            if (gridOrientation == GridOrientation.xy)
                 roundedOffVector.z = _vector.z;
-            else if (_gridOrientation == GridOrientation.yz)
+            else if (gridOrientation == GridOrientation.yz)
                 roundedOffVector.x = _vector.x;
-            else if (_gridOrientation == GridOrientation.zx)
+            else if (gridOrientation == GridOrientation.zx)
                 roundedOffVector.y = _vector.y;
 
             return roundedOffVector;
@@ -200,18 +155,18 @@ public class GridSnapSystem : EditorWindow
         }
         else
         {
-            float temOffset = _gridCellSize / 2;
+            float temOffset = gridCellSize / 2;
             Vector3 roundedOffVector = new Vector3(
-                (Mathf.Round((_vector.x - temOffset) / _gridCellSize) * _gridCellSize) + temOffset,
-                (Mathf.Round((_vector.y - temOffset) / _gridCellSize) * _gridCellSize) + temOffset,
-                (Mathf.Round((_vector.z - temOffset) / _gridCellSize) * _gridCellSize) + temOffset
+                (Mathf.Round((_vector.x - temOffset) / gridCellSize) * gridCellSize) + temOffset,
+                (Mathf.Round((_vector.y - temOffset) / gridCellSize) * gridCellSize) + temOffset,
+                (Mathf.Round((_vector.z - temOffset) / gridCellSize) * gridCellSize) + temOffset
             );
 
-            if (_gridOrientation == GridOrientation.xy)
+            if (gridOrientation == GridOrientation.xy)
                 roundedOffVector.z = _vector.z;
-            else if (_gridOrientation == GridOrientation.yz)
+            else if (gridOrientation == GridOrientation.yz)
                 roundedOffVector.x = _vector.x;
-            else if (_gridOrientation == GridOrientation.zx)
+            else if (gridOrientation == GridOrientation.zx)
                 roundedOffVector.y = _vector.y;
 
             return roundedOffVector;
@@ -222,45 +177,47 @@ public class GridSnapSystem : EditorWindow
 
 
 
+
+    #region Drawing Grid Here
     //------------------------------------Draw Grid----------------------------------------------
-    void SetGrid(int gridSize, float cellSize, Color _color)
+    void SetGrid()
     {
         if(gridOrientation == GridOrientation.xyz)
         {
-            this.DrawGrid3d(gridSize, cellSize, _color);
+            this.DrawGrid3d();
         }
         else
         {
-            this.DrawGrid2d(gridSize, cellSize, 0, gridOrientation, _color);
+            this.DrawGrid2d(0);
         }
 
     }
-    void DrawGrid3d(int gridSize, float cellSize, Color _color)
+    void DrawGrid3d()
     {
-        float actualSize = gridSize * cellSize;
-        float thirdAxisOffset = (-actualSize / 2) + (cellSize / 2);
+        float actualSize = gridSize * gridCellSize;
+        float thirdAxisOffset = (-actualSize / 2) + (gridCellSize / 2);
 
         for (int i = 0; i < gridSize; i++)
         {
-            this.DrawGrid2d(gridSize, gridCellSize, thirdAxisOffset, GridOrientation.xy, _color);
-            this.DrawGrid2d(gridSize, gridCellSize, thirdAxisOffset, GridOrientation.yz, _color);
-            this.DrawGrid2d(gridSize, gridCellSize, thirdAxisOffset, GridOrientation.zx, _color);
+            this.DrawGrid2d( thirdAxisOffset);
+            this.DrawGrid2d( thirdAxisOffset);
+            this.DrawGrid2d( thirdAxisOffset);
 
 
-            thirdAxisOffset += cellSize;
+            thirdAxisOffset += gridCellSize;
         }
     }
-    void DrawGrid2d(int gridSize, float cellSize, float thirdAxisOffset, GridOrientation gridOrientation, Color _color)
+    void DrawGrid2d(float thirdAxisOffset)
     {
-        Handles.color = _color;
+        Handles.color = gridColor;
 
         /*if (gridSize % 2 != 0)
             gridSize++;*/
 
-        float actualSize = gridSize * cellSize;
-        float temOffset = (-actualSize / 2) + (cellSize / 2);
+        float actualSize = gridSize * gridCellSize;
+        float temOffset = (-actualSize / 2) + (gridCellSize/ 2);
 
-        Vector3[] temLineOrigin = this.SetLineOrigin(gridOrientation, temOffset, thirdAxisOffset);
+        Vector3[] temLineOrigin = this.SetLineOrigin(temOffset, thirdAxisOffset);
 
         Vector3 line1_Start = temLineOrigin[0];
         Vector3 line1_End = temLineOrigin[1];
@@ -277,16 +234,16 @@ public class GridSnapSystem : EditorWindow
             Handles.DrawPolyLine(line2_Start, line2_End);
 
 
-            line1_Start = this.Line1Increment(line1_Start, gridOrientation, cellSize);
-            line1_End = this.Line1Increment(line1_End, gridOrientation, cellSize);
+            line1_Start = this.Line1Increment(line1_Start);
+            line1_End = this.Line1Increment(line1_End);
 
-            line2_Start = this.Line2Increment(line2_Start, gridOrientation, cellSize);
-            line2_End = this.Line2Increment(line2_End, gridOrientation, cellSize);
+            line2_Start = this.Line2Increment(line2_Start);
+            line2_End = this.Line2Increment(line2_End);
         }
     }
-    Vector3[] SetLineOrigin(GridOrientation _gridOrientation, float temOffset, float thirdAxisOffset)
+    Vector3[] SetLineOrigin(float temOffset, float thirdAxisOffset)
     {
-        if (_gridOrientation == GridOrientation.xy)
+        if (gridOrientation == GridOrientation.xy)
         {
             return (new Vector3[]{
                 new Vector3(+temOffset, temOffset, thirdAxisOffset),
@@ -296,7 +253,7 @@ public class GridSnapSystem : EditorWindow
                 new Vector3(temOffset, -temOffset, thirdAxisOffset),
             });
         }
-        else if (_gridOrientation == GridOrientation.yz)
+        else if (gridOrientation == GridOrientation.yz)
         {
             return (new Vector3[]{
                 new Vector3(thirdAxisOffset, +temOffset, temOffset),
@@ -306,7 +263,7 @@ public class GridSnapSystem : EditorWindow
                 new Vector3(thirdAxisOffset, temOffset, -temOffset),
             });
         }
-        else if (_gridOrientation == GridOrientation.zx)
+        else if (gridOrientation == GridOrientation.zx)
         {
             return (new Vector3[]{
                 new Vector3(+temOffset, thirdAxisOffset, +temOffset),
@@ -328,41 +285,41 @@ public class GridSnapSystem : EditorWindow
             });
         }
     }
-    Vector3 Line1Increment(Vector3 _vector, GridOrientation _gridOrientation, float cellSize)
+    Vector3 Line1Increment(Vector3 _vector)
     {
-        if (_gridOrientation == GridOrientation.xy)
+        if (gridOrientation == GridOrientation.xy)
         {
-            _vector.y += cellSize;
+            _vector.y += gridCellSize;
             return _vector;
         }
-        else if (_gridOrientation == GridOrientation.yz)
+        else if (gridOrientation == GridOrientation.yz)
         {
-            _vector.z += cellSize;
+            _vector.z += gridCellSize;
             return _vector;
         }
-        else if (_gridOrientation == GridOrientation.zx)
+        else if (gridOrientation == GridOrientation.zx)
         {
-            _vector.x += cellSize;
+            _vector.x += gridCellSize;
             return _vector;
         }
         else
             return _vector;
     }
-    Vector3 Line2Increment(Vector3 _vector, GridOrientation _gridOrientation, float cellSize)
+    Vector3 Line2Increment(Vector3 _vector)
     {
-        if (_gridOrientation == GridOrientation.xy)
+        if (gridOrientation == GridOrientation.xy)
         {
-            _vector.x += cellSize;
+            _vector.x += gridCellSize;
             return _vector;
         }
-        else if (_gridOrientation == GridOrientation.yz)
+        else if (gridOrientation == GridOrientation.yz)
         {
-            _vector.y += cellSize;
+            _vector.y += gridCellSize;
             return _vector;
         }
-        else if (_gridOrientation == GridOrientation.zx)
+        else if (gridOrientation == GridOrientation.zx)
         {
-            _vector.z += cellSize;
+            _vector.z += gridCellSize;
             return _vector;
         }
         else
@@ -371,104 +328,68 @@ public class GridSnapSystem : EditorWindow
     //-------------------------------------------------------------------------------------------
 
 
+    #endregion
 
 
 
 
-    void Highlights(float _cellSize, float _gridSize, Transform selectedTransform)
+    #region Drawing Heighlights for the selected object
+    //-----------------------------------Drawing Highlights-------------------------------------------
+    void Highlights(/*float _cellSize, float _gridSize,*/ Transform selectedTransform/*, GridOrientation _gridOrientation*/)
     {
-        if (_gridSize % 2 != 0)
-        {
-            /*Debug.Log("Before" + _cellSize);
-            Debug.Log(_cellSize * (0.75f));
-            _cellSize = _cellSize * 0.75f;*/
-
-            //_cellSize = _cellSize / 2;
-        }
-
-        Renderer selectedMeshRenderer = selectedTransform.GetComponent<MeshRenderer>();
         Bounds bounds;
-        if (selectedMeshRenderer)
+
+        if (selectedTransform.GetComponent<Renderer>())
+            bounds = new Bounds(selectedTransform.GetComponent<Renderer>().bounds.center, selectedTransform.GetComponent<Renderer>().bounds.size);
+        else
+            bounds = new Bounds(selectedTransform.position, selectedTransform.position);
+
+
+        foreach (Renderer r in selectedTransform.GetComponentsInChildren<Renderer>())
         {
-            bounds = new Bounds(selectedMeshRenderer.bounds.center, selectedMeshRenderer.bounds.size);
-
-            foreach (Renderer r in selectedTransform.GetComponentsInChildren<Renderer>())
-            {
-                Bounds tem_R_bounds = r.bounds;
-                tem_R_bounds.size = new Vector3(tem_R_bounds.size.x, tem_R_bounds.size.y, tem_R_bounds.size.z);
-                bounds.Encapsulate(tem_R_bounds);
-            }
-
-
-            /*Debug.Log("Mesh Center " + selectedMeshRenderer.bounds.center);
-            Debug.Log("Transform Center " + selectedTransform.position);*/
-            //bounds.center = selectedTransform.position;
-
-
-
-
-
-            Bounds temBounds = bounds;
-
-            temBounds.center = this.Recenter(temBounds.center, _cellSize / 2);
-            temBounds.center = new Vector3(temBounds.center.x, 0, temBounds.center.z);
-
-            /*temBounds.size = this.RoundOff(temBounds.size, temBounds.center, cellSize);
-            temBounds.size = new Vector3(temBounds.size.x, 0, temBounds.size.z);*/
-
-
-
-            if(_gridSize%2 != 0)
-                temBounds.size = this.RoundOff(temBounds.size, temBounds.center, _cellSize, 1);
-            else
-                temBounds.size = this.RoundOff(temBounds.size, temBounds.center, _cellSize, 2);
-
-            temBounds.size = new Vector3(temBounds.size.x , 0, temBounds.size.z);
-
-            /*Vector3 temCenter = bounds.center;*/
-
-
-            /* Debug.Log("bounds.center " + bounds.center);
-             Debug.Log("temCenter " + temCenter);
-             Debug.Log("cell size " + cellSize / 2);*/
-
-
-            Color temColor = Color.green;
-            temColor.a = 0.05f;
-            this.DrawSolidCube(temBounds.center, temBounds.size, temColor);
-            /*Gizmos.color = temColor;*/
-            /*Handles.color = temColor;*/
-
-
-            //Gizmos.DrawCube(temBounds.center, temBounds.size);
-
-            /*Gizmos.color = new Color(1, 1, 1, 0.4f);
-            Gizmos.DrawCube(bounds.center, new Vector3(bounds.size.x, 0, bounds.size.z));
-
-            Gizmos.color = Color.red;
-            Gizmos.DrawSphere(bounds.center, 0.2f);
-
-
-            Gizmos.color = Color.blue;
-            Gizmos.DrawSphere(temBounds.center, 0.2f);*/
+            Bounds tem_R_bounds = r.bounds;
+            tem_R_bounds.size = new Vector3(tem_R_bounds.size.x, tem_R_bounds.size.y, tem_R_bounds.size.z);
+            bounds.Encapsulate(tem_R_bounds);
         }
+
+        Bounds temBounds = bounds;
+
+        temBounds.center = this.Recenter(temBounds.center, gridCellSize / 2);
+
+        if(gridOrientation == GridOrientation.xy)
+            temBounds.center = new Vector3(temBounds.center.x, temBounds.center.y, 0);
+        else if(gridOrientation == GridOrientation.yz)
+            temBounds.center = new Vector3(0, temBounds.center.y, temBounds.center.z);
+        else if (gridOrientation == GridOrientation.zx)
+            temBounds.center = new Vector3(temBounds.center.x, 0, temBounds.center.z);
+        else if (gridOrientation == GridOrientation.zx)
+            temBounds.center = new Vector3(temBounds.center.x, temBounds.center.y, temBounds.center.z);
+
+
+        if (gridSize%2 != 0)
+            temBounds.size = this.RoundOff(temBounds.size, temBounds.center, gridCellSize, 1);
+        else
+            temBounds.size = this.RoundOff(temBounds.size, temBounds.center, gridCellSize, 2);
+
+
+        if(gridOrientation == GridOrientation.xy)
+            temBounds.size = new Vector3(temBounds.size.x , temBounds.size.y, 0);
+        else if (gridOrientation == GridOrientation.yz)
+            temBounds.size = new Vector3(0, temBounds.size.y, temBounds.size.z);
+        else if (gridOrientation == GridOrientation.zx)
+            temBounds.size = new Vector3(temBounds.size.x, 0, temBounds.size.z);
+        else if (gridOrientation == GridOrientation.xyz)
+            temBounds.size = new Vector3(temBounds.size.x, temBounds.size.y, temBounds.size.z);
+
+        Color temColor = Color.green;
+        temColor.a = 0.05f;
+        this.DrawSolidCube(temBounds.center, temBounds.size, temColor);
+        /*}*/
 
     }
 
     Vector3 RoundOff(Vector3 _vector, Vector3 _center, float roundOffTo, int multiple)
     {
-        /*Debug.Log("Cell size" + roundOffTo);
-
-        Debug.Log(_vector.z % roundOffTo);
-
-        Debug.Log("Before " + _vector);
-
-        Debug.Log(_center);
-
-        _vector.x += roundOffTo - (_vector.x % roundOffTo);
-
-        _vector.y += roundOffTo - (_vector.y % roundOffTo);*/
-
         if (_center.x % roundOffTo != 0)
         {
             _vector.x += (roundOffTo * multiple) - (_vector.x % (roundOffTo * multiple));
@@ -480,7 +401,7 @@ public class GridSnapSystem : EditorWindow
             else
                 _vector.x += roundOffTo - (_vector.x % roundOffTo);
         }
-
+        
 
         if (_center.y % roundOffTo != 0)
         {
@@ -685,4 +606,6 @@ public class GridSnapSystem : EditorWindow
             return;
         }
     }
+    //-------------------------------------------------------------------------------------------
+    #endregion
 }
