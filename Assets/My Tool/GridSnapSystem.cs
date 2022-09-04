@@ -17,7 +17,7 @@ namespace GridSpace
         static GridOrientation gridOrientation = new GridOrientation();
         static Color gridColor = Color.green;
         static Vector3Int gridSize = new Vector3Int(10, 10, 10);
-        static float gridCellSize = 5;
+        static Vector3 gridCellSize = Vector3.one;
 
 
         private List<Transform> trackOfSelectedTransforms;
@@ -31,16 +31,17 @@ namespace GridSpace
             GridSnapSystem window = (GridSnapSystem)GetWindow(typeof(GridSnapSystem));
             window.Show();
         }
-
+       
         private void OnGUI()
         {
             GUILayout.Label("Base Settings", EditorStyles.boldLabel);
             gridSize = EditorGUILayout.Vector3IntField("Grid Size", gridSize);
-            gridCellSize = EditorGUILayout.FloatField("Grid Cell Size", gridCellSize);
+            gridCellSize = EditorGUILayout.Vector3Field("Grid Cell Size", gridCellSize);
             gridColor = EditorGUILayout.ColorField("Grid Color", gridColor);
             gridOrientation = (GridOrientation)EditorGUILayout.Popup("Orientation", (int)gridOrientation, System.Enum.GetNames(typeof(GridOrientation)));
 
             SceneView.RepaintAll();
+
         }
 
 
@@ -59,7 +60,6 @@ namespace GridSpace
             this.trackOfSelectedTransformsPosition = null;
             SceneView.duringSceneGui -= this.OnSceneGUI;
         }
-
 
         void OnSceneGUI(SceneView sceneView)
         {
@@ -85,7 +85,6 @@ namespace GridSpace
                 this.trackOfSelectedTransformsPosition.Add(_transform.position);
             }
         }
-
 
         bool hasSelectedPositionChanged()
         {
@@ -135,36 +134,41 @@ namespace GridSpace
         //-----------------------------------Grid Snaping-------------------------------------------
         private Vector3 SnaptoGrid(Vector3 _vector)
         {
-            
-
             Vector3 roundedOffVector = Vector3.zero;
-            float temOffset = gridCellSize / 2;
+
+
+            float temOffsetX = gridCellSize.x / 2;
             if (GridSnapSystem.gridSize.x % 2 == 0)
             {
-                roundedOffVector.x = Mathf.Round(_vector.x / gridCellSize) * gridCellSize;
+                roundedOffVector.x = Mathf.Round(_vector.x / gridCellSize.x) * gridCellSize.x;
             }
             else
             {
-                roundedOffVector.x = (Mathf.Round((_vector.x - temOffset) / gridCellSize) * gridCellSize) + temOffset;
+                roundedOffVector.x = (Mathf.Round((_vector.x - temOffsetX) / gridCellSize.x) * gridCellSize.x) + temOffsetX;
             }
 
+
+            float temOffsetY = gridCellSize.y / 2;
             if (GridSnapSystem.gridSize.y % 2 == 0)
             {
-                roundedOffVector.y = Mathf.Round(_vector.y / gridCellSize) * gridCellSize;
+                roundedOffVector.y = Mathf.Round(_vector.y / gridCellSize.y) * gridCellSize.y;
             }
             else
             { 
-                roundedOffVector.y = (Mathf.Round((_vector.y - temOffset) / gridCellSize) * gridCellSize) + temOffset;
+                roundedOffVector.y = (Mathf.Round((_vector.y - temOffsetY) / gridCellSize.y) * gridCellSize.y) + temOffsetY;
             }
 
+
+            float temOffsetZ = gridCellSize.z / 2;
             if (GridSnapSystem.gridSize.z % 2 == 0)
             {
-                roundedOffVector.z = Mathf.Round(_vector.z / gridCellSize) * gridCellSize;
+                roundedOffVector.z = Mathf.Round(_vector.z / gridCellSize.z) * gridCellSize.z;
             }
             else
             {
-                roundedOffVector.z = (Mathf.Round((_vector.z - temOffset) / gridCellSize) * gridCellSize) + temOffset;
+                roundedOffVector.z = (Mathf.Round((_vector.z - temOffsetZ) / gridCellSize.z) * gridCellSize.z) + temOffsetZ;
             }
+
 
             if (gridOrientation == GridOrientation.xy)
                 roundedOffVector.z = _vector.z;
@@ -172,6 +176,7 @@ namespace GridSpace
                 roundedOffVector.x = _vector.x;
             else if (gridOrientation == GridOrientation.zx)
                 roundedOffVector.y = _vector.y;
+
 
             return roundedOffVector;
 
@@ -220,33 +225,33 @@ namespace GridSpace
             int gridSizeA = 0, gridSizeB = 0;
             if(gridOrientation == GridOrientation.xy)
             {
-                actualSizeA = gridSize.x * gridCellSize;
-                actualSizeB = gridSize.y * gridCellSize;
+                actualSizeA = gridSize.x * gridCellSize.x;
+                actualSizeB = gridSize.y * gridCellSize.y;
 
                 gridSizeA = gridSize.x;
                 gridSizeB = gridSize.y;
             }
             else if (gridOrientation == GridOrientation.yz)
             {
-                actualSizeA = gridSize.y * gridCellSize;
-                actualSizeB = gridSize.z * gridCellSize;
+                actualSizeA = gridSize.y * gridCellSize.y;
+                actualSizeB = gridSize.z * gridCellSize.z;
 
                 gridSizeA = gridSize.y;
                 gridSizeB = gridSize.z;
             }
             else if(gridOrientation == GridOrientation.zx)
             {
-                actualSizeA = gridSize.z * gridCellSize;
-                actualSizeB = gridSize.x * gridCellSize;
+                actualSizeA = gridSize.z * gridCellSize.z;
+                actualSizeB = gridSize.x * gridCellSize.x;
 
                 gridSizeA = gridSize.z;
                 gridSizeB = gridSize.x;
             }
-            float temOffsetA = (-actualSizeA / 2) + (gridCellSize / 2);
+            /*float temOffsetA = (-actualSizeA / 2) + (gridCellSize / 2);
 
-            float temOffsetB = (-actualSizeB / 2) + (gridCellSize / 2);
+            float temOffsetB = (-actualSizeB / 2) + (gridCellSize / 2);*/
 
-            Vector3[] temLineOrigin = this.SetLineOrigin(temOffsetA, temOffsetB, thirdAxisOffset);
+            Vector3[] temLineOrigin = this.SetLineOrigin(actualSizeA, actualSizeB, thirdAxisOffset);
 
             Vector3 line1_Start = temLineOrigin[0];
             Vector3 line1_End = temLineOrigin[1];
@@ -274,10 +279,13 @@ namespace GridSpace
 
             }
         }
-        Vector3[] SetLineOrigin(float temOffsetA, float temOffsetB, float thirdAxisOffset)
+        Vector3[] SetLineOrigin(float actualSizeA, float actualSizeB, float thirdAxisOffset)
         {
             if (gridOrientation == GridOrientation.xy)
             {
+                float temOffsetA = (-actualSizeA / 2) + (gridCellSize.x / 2);
+                float temOffsetB = (-actualSizeB / 2) + (gridCellSize.y / 2);
+
                 return (new Vector3[]{
                 new Vector3(+temOffsetA, temOffsetB, thirdAxisOffset),
                 new Vector3(-temOffsetA, temOffsetB, thirdAxisOffset),
@@ -288,6 +296,9 @@ namespace GridSpace
             }
             else if (gridOrientation == GridOrientation.yz)
             {
+                float temOffsetA = (-actualSizeA / 2) + (gridCellSize.y / 2);
+                float temOffsetB = (-actualSizeB / 2) + (gridCellSize.z / 2);
+
                 return (new Vector3[]{
                 new Vector3(thirdAxisOffset, +temOffsetA, temOffsetB),
                 new Vector3(thirdAxisOffset, -temOffsetA, temOffsetB),
@@ -298,6 +309,9 @@ namespace GridSpace
             }
             else
             {
+                float temOffsetA = (-actualSizeA / 2) + (gridCellSize.z / 2);
+                float temOffsetB = (-actualSizeB / 2) + (gridCellSize.x / 2);
+
                 return (new Vector3[]{
                 new Vector3(+temOffsetB, thirdAxisOffset, +temOffsetA),
                 new Vector3(+temOffsetB, thirdAxisOffset, -temOffsetA),
@@ -321,17 +335,17 @@ namespace GridSpace
         {
             if (gridOrientation == GridOrientation.xy)
             {
-                _vector.y += gridCellSize;
+                _vector.y += gridCellSize.y;
                 return _vector;
             }
             else if (gridOrientation == GridOrientation.yz)
             {
-                _vector.z += gridCellSize;
+                _vector.z += gridCellSize.z;
                 return _vector;
             }
             else if (gridOrientation == GridOrientation.zx)
             {
-                _vector.x += gridCellSize;
+                _vector.x += gridCellSize.x;
                 return _vector;
             }
             else
@@ -341,17 +355,17 @@ namespace GridSpace
         {
             if (gridOrientation == GridOrientation.xy)
             {
-                _vector.x += gridCellSize;
+                _vector.x += gridCellSize.x;
                 return _vector;
             }
             else if (gridOrientation == GridOrientation.yz)
             {
-                _vector.y += gridCellSize;
+                _vector.y += gridCellSize.y;
                 return _vector;
             }
             else if (gridOrientation == GridOrientation.zx)
             {
-                _vector.z += gridCellSize;
+                _vector.z += gridCellSize.z;
                 return _vector;
             }
             else
@@ -398,7 +412,7 @@ namespace GridSpace
                 temBounds.center = new Vector3(temBounds.center.x, temBounds.center.y, temBounds.center.z);
 
 
-           temBounds.size = this.RoundOff(temBounds.size, temBounds.center, gridCellSize);
+            temBounds.size = this.RoundOff(temBounds.size, temBounds.center, gridCellSize);
 
 
             if (gridOrientation == GridOrientation.xy)
@@ -407,8 +421,6 @@ namespace GridSpace
                 temBounds.size = new Vector3(0, temBounds.size.y, temBounds.size.z);
             else if (gridOrientation == GridOrientation.zx)
                 temBounds.size = new Vector3(temBounds.size.x, 0, temBounds.size.z);
-            /*else if (gridOrientation == GridOrientation.xyz)
-                temBounds.size = new Vector3(temBounds.size.x, temBounds.size.y, temBounds.size.z);*/
 
             Color temColor = Color.green;
             temColor.a = 0.05f;
@@ -416,11 +428,11 @@ namespace GridSpace
 
         }
 
-        Vector3 RoundOff(Vector3 _vector, Vector3 _center, float roundOffTo)
+        Vector3 RoundOff(Vector3 _vector, Vector3 _center, Vector3 roundOffTo)
         {
             int multiple;
-            { 
-                if(gridSize.x % 2 != 0)
+            {
+                if (gridSize.x % 2 != 0)
                 {
                     multiple = 1;
                 }
@@ -429,16 +441,16 @@ namespace GridSpace
                     multiple = 2;
                 }
 
-                if (_center.x % roundOffTo != 0)
+                if (_center.x % roundOffTo.x != 0)
                 {
-                    _vector.x += (roundOffTo * multiple) - (_vector.x % (roundOffTo * multiple));
+                    _vector.x += (roundOffTo.x * multiple) - (_vector.x % (roundOffTo.x * multiple));
                 }
                 else
                 {
-                    if (_vector.x % (roundOffTo * multiple) > roundOffTo)
-                        _vector.x += (roundOffTo - (_vector.x % roundOffTo)) + roundOffTo;
+                    if (_vector.x % (roundOffTo.x * multiple) >= roundOffTo.x)
+                        _vector.x += (roundOffTo.x - (_vector.x % roundOffTo.x)) + roundOffTo.x;
                     else
-                        _vector.x += roundOffTo - (_vector.x % roundOffTo);
+                        _vector.x += roundOffTo.x - (_vector.x % roundOffTo.x);
                 }
             }
 
@@ -452,16 +464,16 @@ namespace GridSpace
                     multiple = 2;
                 }
 
-                if (_center.y % roundOffTo != 0)
+                if (_center.y % roundOffTo.y != 0)
                 {
-                    _vector.y += (roundOffTo * multiple) - (_vector.y % (roundOffTo * multiple));
+                    _vector.y += (roundOffTo.y * multiple) - (_vector.y % (roundOffTo.y * multiple));
                 }
                 else
                 {
-                    if (_vector.y % (roundOffTo * multiple) > roundOffTo)
-                        _vector.y += (roundOffTo - (_vector.y % roundOffTo)) + roundOffTo;
+                    if (_vector.y % (roundOffTo.y * multiple) >= roundOffTo.y)
+                        _vector.y += (roundOffTo.y - (_vector.y % roundOffTo.y)) + roundOffTo.y;
                     else
-                        _vector.y += roundOffTo - (_vector.y % roundOffTo);
+                        _vector.y += roundOffTo.y - (_vector.y % roundOffTo.y);
                 }
             }
 
@@ -475,56 +487,56 @@ namespace GridSpace
                     multiple = 2;
                 }
 
-                if (_center.z % roundOffTo != 0)
+                if (_center.z % roundOffTo.z != 0)
                 {
-                    _vector.z += (roundOffTo * multiple) - (_vector.z % (roundOffTo * multiple));
+                    _vector.z += (roundOffTo.z * multiple) - (_vector.z % (roundOffTo.z * multiple));
                 }
                 else
                 {
-                    if (_vector.z % (roundOffTo * multiple) > roundOffTo)
-                        _vector.z += (roundOffTo - (_vector.z % roundOffTo)) + roundOffTo;
+                    if (_vector.z % (roundOffTo.z * multiple) >= roundOffTo.z)
+                        _vector.z += (roundOffTo.z - (_vector.z % roundOffTo.z)) + roundOffTo.z;
                     else
-                        _vector.z += roundOffTo - (_vector.z % roundOffTo);
+                        _vector.z += roundOffTo.z - (_vector.z % roundOffTo.z);
                 }
             }
 
             return _vector;
         }
 
-        Vector3 Recenter(Vector3 _vector, float roundOffTo)
+        Vector3 Recenter(Vector3 _vector, Vector3 roundOffTo)
         {
 
-            if (Mathf.Abs(_vector.x) % roundOffTo >= roundOffTo / 2)
+            if (Mathf.Abs(_vector.x) % roundOffTo.x >= roundOffTo.x / 2)
             {
                 if (_vector.x <= 0)
-                    _vector.x += -roundOffTo - (_vector.x % roundOffTo);
+                    _vector.x += -roundOffTo.x - (_vector.x % roundOffTo.x);
                 else
-                    _vector.x += roundOffTo - (_vector.x % roundOffTo);
+                    _vector.x += roundOffTo.x - (_vector.x % roundOffTo.x);
             }
             else
-                _vector.x -= _vector.x % roundOffTo;
+                _vector.x -= _vector.x % roundOffTo.x;
 
 
-            if (Mathf.Abs(_vector.y) % roundOffTo > roundOffTo / 2)
+            if (Mathf.Abs(_vector.y) % roundOffTo.y > roundOffTo.y / 2)
             {
                 if (_vector.y < 0)
-                    _vector.y += -roundOffTo - (_vector.y % roundOffTo);
+                    _vector.y += -roundOffTo.y - (_vector.y % roundOffTo.y);
                 else
-                    _vector.y += roundOffTo - (_vector.y % roundOffTo);
+                    _vector.y += roundOffTo.y - (_vector.y % roundOffTo.y);
             }
             else
-                _vector.y -= _vector.y % roundOffTo;
+                _vector.y -= _vector.y % roundOffTo.y;
 
 
-            if (Mathf.Abs(_vector.z) % roundOffTo > roundOffTo / 2)
+            if (Mathf.Abs(_vector.z) % roundOffTo.z > roundOffTo.z / 2)
             {
                 if (_vector.z < 0)
-                    _vector.z += -roundOffTo - (_vector.z % roundOffTo);
+                    _vector.z += -roundOffTo.z - (_vector.z % roundOffTo.z);
                 else
-                    _vector.z += roundOffTo - (_vector.z % roundOffTo);
+                    _vector.z += roundOffTo.z - (_vector.z % roundOffTo.z);
             }
             else
-                _vector.z -= _vector.z % roundOffTo;
+                _vector.z -= _vector.z % roundOffTo.z;
 
 
             return _vector;
@@ -667,5 +679,35 @@ namespace GridSpace
         }
         //-------------------------------------------------------------------------------------------
         #endregion
+
+
+
+
+
+
+
+
+        #region Access
+
+        static public Vector2Int GetGridSize()
+        {
+            if(gridOrientation == GridOrientation.xy)
+            {
+                return new Vector2Int(gridSize.x, gridSize.y);
+            }
+            else if (gridOrientation == GridOrientation.yz)
+            {
+                return new Vector2Int(gridSize.z, gridSize.y);
+            }
+            else
+            {
+                return new Vector2Int(gridSize.z, gridSize.x);
+            }
+        }
+
+        #endregion
+
+
+
     }
 }
