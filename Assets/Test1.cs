@@ -5,15 +5,9 @@ using GridSpace;
 
 public class Test1 : MonoBehaviour
 {
-    public string some = "";
-    // Update is called once per frame
-    void Update()
+    void Start()
     {
-        if(Input.GetMouseButton(0))
-        {
-            Debug.Log(LayerMask.NameToLayer(some));
-
-
-        }
+        Debug.Log(transform.localPosition);
+        
     }
 }
