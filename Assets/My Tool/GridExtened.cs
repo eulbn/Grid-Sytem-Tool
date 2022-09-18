@@ -3,18 +3,19 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System;
+using System.Linq;
 
 namespace GridSpace
 {
     
-    public enum ObjectType
+    public enum ObjectKind
     {
         ObjectTag, ObjectLayer
     }
 
     class ObjectsList
     {
-        public ObjectType _objectType;
+        public ObjectKind objectType;
         public string objectName;
         public GameObject[,] gridObjects;
         public ObjectsList(int sizeA, int SizeB)
@@ -34,56 +35,45 @@ namespace GridSpace
         }
     }
 
-    public class GridExtened : Editor
+    public class GridExtened : MonoBehaviour
     {
         
-        static List<ObjectsList> _objectList = new List<ObjectsList>();
-        static public void AssignObjects(string name, ObjectType objectType)
+        static List<ObjectsList> objectList = new List<ObjectsList>();
+        static public void AssignObjects(string name, ObjectKind objectType)
         {
 
-            int temLayered = LayerMask.NameToLayer(name);
-            if (temLayered == -1 && objectType == ObjectType.ObjectLayer)
-            {
-                return;
-            }
+            if (LayerMask.NameToLayer(name) == -1 && objectType == ObjectKind.ObjectLayer) { return; }// check if the layer exists
+            if (!TagExists(name) && objectType == ObjectKind.ObjectTag) { return; }//check if the tag exisits
 
-            if(!TagExists(name) && objectType == ObjectType.ObjectTag)
+            ObjectsList temObjectList = objectList.Find(item => item.objectName == name);
             {
-                return;
-            }
-           
-            ObjectsList temObjectList;
-
-            bool exists = false;
-            foreach (ObjectsList item in _objectList)
-            {
-                if (item.objectName == name)
+                if (temObjectList != null)//if already does not exist, create a new object
                 {
-                    exists = true;
-                    temObjectList = item;
                     temObjectList.ClearGridObject();
-                    break;
                 }
-
-            }
-
-            if (exists == false)
-            {
-                Vector2Int temGridSize = GridSnapSystem.GetGridSize();
-                temObjectList = new ObjectsList(temGridSize.x, temGridSize.y);
-                temObjectList._objectType = objectType;
-                temObjectList.objectName = name;
-            }
-
-
-
-            foreach (GameObject _gameObject in GameObject.FindGameObjectsWithTag(name))
-            {
-                if(objectType == ObjectType.ObjectLayer)
+                else
                 {
+                    Vector2Int temGridSize = GridSnapSystem.GetGridSize();
+
+                    temObjectList = new ObjectsList(temGridSize.x, temGridSize.y);
+                    temObjectList.objectType = objectType;
+                    temObjectList.objectName = name;
+                    objectList.Add(temObjectList);
                 }
             }
-            
+
+            if (objectType == ObjectKind.ObjectTag)
+            {
+                foreach (GameObject _gameObject in GameObject.FindGameObjectsWithTag(name))
+                {
+                    Vector2Int objectIndexes = GridSnapSystem.ObjectIndex(_gameObject.transform.position);
+                    temObjectList.gridObjects[objectIndexes.x, objectIndexes.y] = _gameObject;
+
+                    Debug.Log("Object Name:" + _gameObject.name + " Index:" + objectIndexes);
+                }
+            }
+
+            Debug.Log("_____" + objectList.Count);
         }
 
         static bool TagExists(string aTag)

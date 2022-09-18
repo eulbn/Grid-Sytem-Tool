@@ -5,9 +5,13 @@ using GridSpace;
 
 public class Test1 : MonoBehaviour
 {
-    void Start()
+    private void Update()
     {
-        Debug.Log(transform.localPosition);
-        
+        if(Input.GetKeyDown(KeyCode.A))
+        {
+            //Debug.Log(GridSnapSystem.ObjectIndex(transform.position));
+
+            GridExtened.AssignObjects("SomeTag", ObjectKind.ObjectTag);
+        }
     }
 }

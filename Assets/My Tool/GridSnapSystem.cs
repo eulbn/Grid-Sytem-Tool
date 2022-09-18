@@ -19,47 +19,201 @@ namespace GridSpace
         static Vector3 gridCenter = Vector3.zero;
         static GridOrientation gridOrientation = new GridOrientation();
         static Color gridColor = Color.green;
+        static ObjectKind objectKind = new ObjectKind();
+        static int objectKindLayer = 0;
+        static string objectKindTag = "Untagged";
 
 
         private List<Transform> trackOfSelectedTransforms;
         private List<Vector3> trackOfSelectedTransformsPosition;
+        private const float precisionLimit = 0.1f;
+        private Vector2 scrollPosition = Vector2.zero;
+
+        private List<int> someList = Enumerable.Range(0, 1000).ToList();
+        private const string resourcesPath = "GridSnapSystem/";
+        private GUIStyle assignedButtonStyle;
+        private Texture2D normalButtonTexture;
+        private Texture2D hoverButtonTexture;
+        private Texture2D activeButtonTexture;
+        private bool hasAssignedTexture = false;
 
 
+        private GUIStyle assignedDeleteButtonStyle;
+        private Texture2D normalDeleteButtonTexture;
+        private Texture2D hoverDeleteButtonTexture;
+        private Texture2D activeDeleteButtonTexture;
+        private bool hasAssignedDeleteTexture = false;
 
         [MenuItem("Window/Grid Snap System")]
         static void Init()
         {
             GridSnapSystem window = (GridSnapSystem)GetWindow(typeof(GridSnapSystem));
+
             window.Show();
         }
-       
+
         private void OnGUI()
         {
-            GUILayout.Label("Base Settings", EditorStyles.boldLabel);
+            GUILayout.Label("Base Settings", EditorStyles.largeLabel);
             gridSize = EditorGUILayout.Vector3IntField("Grid Size", gridSize);
             gridCellSize = EditorGUILayout.Vector3Field("Grid Cell Size", gridCellSize);
             gridCenter = EditorGUILayout.Vector3Field("Grid Center", gridCenter);
             gridColor = EditorGUILayout.ColorField("Grid Color", gridColor);
             gridOrientation = (GridOrientation)EditorGUILayout.Popup("Orientation", (int)gridOrientation, System.Enum.GetNames(typeof(GridOrientation)));
+            EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+            
+            
+            objectKind = (ObjectKind)EditorGUILayout.Popup("Object Kind", (int)objectKind, System.Enum.GetNames(typeof(ObjectKind)));
+            Rect objectKindRect = EditorGUILayout.GetControlRect();
 
+            if(objectKind == ObjectKind.ObjectTag)
+            {
+                objectKindTag = EditorGUI.TagField(objectKindRect, "Object Tag", objectKindTag);
+            }
+            else if (objectKind == ObjectKind.ObjectLayer)
+            {
+                objectKindLayer = EditorGUI.LayerField(objectKindRect, "Object Layer", objectKindLayer);
+            }
+            
+            Rect assignButtonRect = new Rect(EditorGUILayout.GetControlRect().width/2 - 100 + 1, EditorGUILayout.GetControlRect().y - 1, 200, 24);
+            if(GUI.Button(assignButtonRect, "Assign Objects"))
+            {
+
+            }
+
+          
+
+            EditorGUILayout.BeginHorizontal(GUILayout.Height(182));
+
+            Rect rectPosition = EditorGUILayout.GetControlRect();
+            Rect rectBox = new Rect(rectPosition.x, rectPosition.y + 18, rectPosition.width, 182);
+
+            EditorGUI.DrawRect(rectBox, Color.black);
+
+            Rect viewRect = new Rect(rectBox.x, rectBox.y, rectBox.width, someList.Count * rectPosition.height);
+            scrollPosition = GUI.BeginScrollView(rectBox, scrollPosition, viewRect, false, true, GUIStyle.none, GUI.skin.verticalScrollbar);
+
+            rectPosition.height += 2;
+            int viewCount = 18;
+            int firstIndex = (int)(scrollPosition.y / rectPosition.height);
+            Rect assignedButtonPosition = new Rect(rectBox.x, rectBox.y + (firstIndex * rectPosition.height + 2), rectBox.width * 0.65f, 18);
+            Rect assignedButtonDeletePosition = new Rect(rectBox.x + (float)(rectBox.width * 0.65), rectBox.y + (firstIndex * rectPosition.height + 2), rectBox.width * 0.35f, 18);
+
+            this.SetAssignedButtonTexture();
+            this.SetAssignedDeleteButtonTexture();
+
+            for (int i = firstIndex; i < Mathf.Min(someList.Count, firstIndex + viewCount); i++)
+            {
+                GUI.Button(assignedButtonPosition, "  >   " + someList[i].ToString(), assignedButtonStyle);
+                GUI.Button(assignedButtonDeletePosition, "Delete", assignedDeleteButtonStyle);
+                assignedButtonPosition.y += rectPosition.height;
+                assignedButtonDeletePosition.y += rectPosition.height;
+            }
+            GUI.EndScrollView();
+
+            EditorGUILayout.EndHorizontal();
+            
+
+            //Repaint();
             SceneView.RepaintAll();
-
         }
 
+       
+
+        void SetAssignedButtonTexture()
+        {
+            if (hasAssignedTexture)
+                return;
+
+            assignedButtonStyle = new GUIStyle(/*GUI.skin.button*/);
+
+            normalButtonTexture = new Texture2D(1, 1);
+            normalButtonTexture.SetPixel(0, 0, new Color(0.2196079f, 0.2196079f, 0.2196079f, 1));
+            normalButtonTexture.Apply();
+
+            hoverButtonTexture = new Texture2D(1, 1);
+            hoverButtonTexture.SetPixel(0, 0, new Color(0.3019608f, 0.3019608f, 0.3019608f, 0.7f));
+            hoverButtonTexture.Apply();
+
+            activeButtonTexture = new Texture2D(1, 1);
+            activeButtonTexture.SetPixel(0, 0, new Color(0.2666666f, 0.6640455f, 0.8980392f, 0.4f));
+            activeButtonTexture.Apply();
+
+            assignedButtonStyle.alignment = TextAnchor.MiddleLeft;
+            assignedButtonStyle.border = GUI.skin.button.border;
+
+            assignedButtonStyle.normal.textColor = Color.white;
+            assignedButtonStyle.normal.background = normalButtonTexture;
+
+            assignedButtonStyle.hover.background = hoverButtonTexture;
+            assignedButtonStyle.hover.textColor = Color.white;
+
+            assignedButtonStyle.active.background = activeButtonTexture;
+            assignedButtonStyle.active.textColor = Color.white;
+
+            hasAssignedTexture = true;
+        }
+
+        void SetAssignedDeleteButtonTexture()
+        {
+            if (hasAssignedDeleteTexture)
+                return;
+
+            assignedDeleteButtonStyle = new GUIStyle(/*GUI.skin.button*/);
+
+            normalDeleteButtonTexture = new Texture2D(1, 1);
+            normalDeleteButtonTexture.SetPixel(0, 0, new Color(0.196079f, 0.196079f, 0.196079f, 1));
+            normalDeleteButtonTexture.Apply();
+
+            hoverDeleteButtonTexture = new Texture2D(1, 1);
+            hoverDeleteButtonTexture.SetPixel(0, 0, new Color(0.3019608f, 0.3019608f, 0.3019608f, 0.7f));
+            hoverDeleteButtonTexture.Apply();
+
+            activeDeleteButtonTexture = new Texture2D(1, 1);
+            activeDeleteButtonTexture.SetPixel(0, 0, new Color(0.2666666f, 0.6640455f, 0.8980392f, 0.4f));
+            activeDeleteButtonTexture.Apply();
+
+            assignedButtonStyle.border = GUI.skin.button.border;
+            assignedDeleteButtonStyle.alignment = TextAnchor.MiddleCenter;
+
+            assignedDeleteButtonStyle.normal.textColor = Color.white;
+            assignedDeleteButtonStyle.normal.background = normalDeleteButtonTexture;
+
+            assignedDeleteButtonStyle.hover.background = hoverDeleteButtonTexture;
+            assignedDeleteButtonStyle.hover.textColor = Color.white;
+
+            assignedDeleteButtonStyle.active.background = activeDeleteButtonTexture;
+            assignedDeleteButtonStyle.active.textColor = Color.white;
+
+            hasAssignedDeleteTexture = true;
+        }
 
         void OnEnable()
         {
+
             this.trackOfSelectedTransforms = new List<Transform>();
             this.trackOfSelectedTransformsPosition = new List<Vector3>();
+
             SceneView.duringSceneGui += this.OnSceneGUI;
         }
-
         void OnDisable()
         {
+
             this.trackOfSelectedTransforms.Clear();
             this.trackOfSelectedTransformsPosition.Clear();
             this.trackOfSelectedTransforms = null;
             this.trackOfSelectedTransformsPosition = null;
+
+            this.assignedButtonStyle = null;
+            this.normalButtonTexture = null;
+            this.activeButtonTexture = null;
+            this.hasAssignedTexture = false;
+
+            this.assignedDeleteButtonStyle = null;
+            this.normalDeleteButtonTexture = null;
+            this.activeDeleteButtonTexture = null;
+            this.hasAssignedDeleteTexture = false;
+
             SceneView.duringSceneGui -= this.OnSceneGUI;
         }
 
@@ -69,7 +223,7 @@ namespace GridSpace
 
             foreach (var _transfrom in Selection.transforms)
             {
-                if (this.IsInsideGrid(_transfrom.position))
+                if (IsInsideGrid(_transfrom.position))
                 {
 
 
@@ -139,50 +293,50 @@ namespace GridSpace
 
         #region Logic
         //-----------------------------------Grid Snaping-------------------------------------------
-        private Vector3 SnaptoGrid(Vector3 _vector)
+        private Vector3 SnaptoGrid(Vector3 _position)
         {
             Vector3 roundedOffVector = Vector3.zero;
 
 
             float temOffsetX = gridCellSize.x / 2;
-            if (GridSnapSystem.gridSize.x % 2 == 0)
+            if ((gridSize.x + 1) % 2 == 0)
             {
-                roundedOffVector.x = (Mathf.Round((_vector.x - gridCenter.x)/ gridCellSize.x) * gridCellSize.x) + gridCenter.x;
+                roundedOffVector.x = (Mathf.Round((_position.x - gridCenter.x) / gridCellSize.x) * gridCellSize.x) + gridCenter.x;
             }
             else
             {
-                roundedOffVector.x = (Mathf.Round((_vector.x - temOffsetX - gridCenter.x) / gridCellSize.x) * gridCellSize.x) + temOffsetX + gridCenter.x;
+                roundedOffVector.x = (Mathf.Round((_position.x - temOffsetX - gridCenter.x) / gridCellSize.x) * gridCellSize.x) + temOffsetX + gridCenter.x;
             }
 
 
             float temOffsetY = gridCellSize.y / 2;
-            if (GridSnapSystem.gridSize.y % 2 == 0)
+            if ((gridSize.y + 1) % 2 == 0)
             {
-                roundedOffVector.y = (Mathf.Round((_vector.y - gridCenter.y) / gridCellSize.y) * gridCellSize.y) + gridCenter.y;
+                roundedOffVector.y = (Mathf.Round((_position.y - gridCenter.y) / gridCellSize.y) * gridCellSize.y) + gridCenter.y;
             }
             else
-            { 
-                roundedOffVector.y = (Mathf.Round((_vector.y - temOffsetY - gridCenter.y) / gridCellSize.y) * gridCellSize.y) + temOffsetY + gridCenter.y;
+            {
+                roundedOffVector.y = (Mathf.Round((_position.y - temOffsetY - gridCenter.y) / gridCellSize.y) * gridCellSize.y) + temOffsetY + gridCenter.y;
             }
 
 
             float temOffsetZ = gridCellSize.z / 2;
-            if (GridSnapSystem.gridSize.z % 2 == 0)
+            if ((gridSize.z + 1) % 2 == 0)
             {
-                roundedOffVector.z = (Mathf.Round((_vector.z - gridCenter.z) / gridCellSize.z) * gridCellSize.z) + gridCenter.z;
+                roundedOffVector.z = (Mathf.Round((_position.z - gridCenter.z) / gridCellSize.z) * gridCellSize.z) + gridCenter.z;
             }
             else
             {
-                roundedOffVector.z = (Mathf.Round((_vector.z - temOffsetZ - gridCenter.z) / gridCellSize.z) * gridCellSize.z) + temOffsetZ + gridCenter.z;
+                roundedOffVector.z = (Mathf.Round((_position.z - temOffsetZ - gridCenter.z) / gridCellSize.z) * gridCellSize.z) + temOffsetZ + gridCenter.z;
             }
 
 
             if (gridOrientation == GridOrientation.xy)
-                roundedOffVector.z = _vector.z;
+                roundedOffVector.z = _position.z;
             else if (gridOrientation == GridOrientation.yz)
-                roundedOffVector.x = _vector.x;
+                roundedOffVector.x = _position.x;
             else if (gridOrientation == GridOrientation.zx)
-                roundedOffVector.y = _vector.y;
+                roundedOffVector.y = _position.y;
 
 
             return roundedOffVector;
@@ -197,7 +351,7 @@ namespace GridSpace
         //------------------------------------Draw Grid----------------------------------------------
         void SetGrid()
         {
-            this.DrawGrid2d(0);
+            this.DrawGrid2d();
 
 
             /*if (gridOrientation == GridOrientation.xyz)
@@ -214,51 +368,47 @@ namespace GridSpace
         {
             float actualSize = gridSize * gridCellSize;
             float thirdAxisOffset = (-actualSize / 2) + (gridCellSize / 2);
-
             for (int i = 0; i < gridSize; i++)
             {
                 this.DrawGrid2d(thirdAxisOffset);
                 this.DrawGrid2d(thirdAxisOffset);
                 this.DrawGrid2d(thirdAxisOffset);
-
-
                 thirdAxisOffset += gridCellSize;
             }
         }*/
-        void DrawGrid2d(float thirdAxisOffset)
+        void DrawGrid2d( )
         {
             Handles.color = gridColor;
             float actualSizeA = 0, actualSizeB = 0;
             int gridSizeA = 0, gridSizeB = 0;
-            if(gridOrientation == GridOrientation.xy)
+            if (gridOrientation == GridOrientation.xy)
             {
-                actualSizeA = gridSize.x * gridCellSize.x;
-                actualSizeB = gridSize.y * gridCellSize.y;
+                actualSizeA = (gridSize.x + 1) * gridCellSize.x;
+                actualSizeB = (gridSize.y + 1) * gridCellSize.y;
 
-                gridSizeA = gridSize.x;
-                gridSizeB = gridSize.y;
+                gridSizeA = (gridSize.x + 1);
+                gridSizeB = (gridSize.y + 1);
             }
             else if (gridOrientation == GridOrientation.yz)
             {
-                actualSizeA = gridSize.y * gridCellSize.y;
-                actualSizeB = gridSize.z * gridCellSize.z;
+                actualSizeA = (gridSize.y + 1) * gridCellSize.y;
+                actualSizeB = (gridSize.z + 1) * gridCellSize.z;
 
-                gridSizeA = gridSize.y;
-                gridSizeB = gridSize.z;
+                gridSizeA = (gridSize.y + 1);
+                gridSizeB = (gridSize.z + 1);
             }
-            else if(gridOrientation == GridOrientation.zx)
+            else if (gridOrientation == GridOrientation.zx)
             {
-                actualSizeA = gridSize.z * gridCellSize.z;
-                actualSizeB = gridSize.x * gridCellSize.x;
+                actualSizeA = (gridSize.z + 1) * gridCellSize.z;
+                actualSizeB = (gridSize.x + 1) * gridCellSize.x;
 
-                gridSizeA = gridSize.z;
-                gridSizeB = gridSize.x;
+                gridSizeA = (gridSize.z + 1);
+                gridSizeB = (gridSize.x + 1);
             }
             /*float temOffsetA = (-actualSizeA / 2) + (gridCellSize / 2);
-
             float temOffsetB = (-actualSizeB / 2) + (gridCellSize / 2);*/
 
-            Vector3[] temLineOrigin = this.SetLineOrigin(actualSizeA, actualSizeB, thirdAxisOffset);
+            Vector3[] temLineOrigin = this.SetLineOrigin(actualSizeA, actualSizeB);
 
             Vector3 line1_Start = temLineOrigin[0];
             Vector3 line1_End = temLineOrigin[1];
@@ -271,7 +421,7 @@ namespace GridSpace
                 /*Handles.DrawAAPolyLine(80 / gridSize, line1_Start, line1_End);
                 Handles.DrawAAPolyLine(80 / gridSize, line2_Start, line2_End);*/
 
-                
+
                 if (i < gridSizeB)
                     Handles.DrawPolyLine(line1_Start, line1_End);
 
@@ -286,7 +436,7 @@ namespace GridSpace
 
             }
         }
-        Vector3[] SetLineOrigin(float actualSizeA, float actualSizeB, float thirdAxisOffset)
+        Vector3[] SetLineOrigin(float actualSizeA, float actualSizeB)
         {
             if (gridOrientation == GridOrientation.xy)
             {
@@ -296,7 +446,7 @@ namespace GridSpace
                 return (new Vector3[]{
                 new Vector3((+temOffsetA + gridCenter.x),  (temOffsetB + gridCenter.y),  (gridCenter.z)),
                 new Vector3((-temOffsetA + gridCenter.x),  (temOffsetB + gridCenter.y),  (gridCenter.z)),
-                         
+
                 new Vector3((temOffsetA + gridCenter.x),  (+temOffsetB + gridCenter.y),  (gridCenter.z)),
                 new Vector3((temOffsetA + gridCenter.x),  (-temOffsetB + gridCenter.y),  (gridCenter.z)),
                 });
@@ -332,7 +482,6 @@ namespace GridSpace
                 return (new Vector3[]{
                 new Vector3(temOffset, thirdAxisOffset, temOffset),
                 new Vector3(-temOffset,thirdAxisOffset, temOffset),
-
                 new Vector3(temOffset, thirdAxisOffset, temOffset),
                 new Vector3(temOffset, thirdAxisOffset, -temOffset),
                 });
@@ -445,7 +594,7 @@ namespace GridSpace
             //roundOffTo += gridCenter;
             int multiple;
             {
-                if (gridSize.x % 2 != 0)
+                if ((gridSize.x + 1) % 2 != 0)
                 {
                     multiple = 1;
                 }
@@ -468,7 +617,7 @@ namespace GridSpace
             }
 
             {
-                if (gridSize.y % 2 != 0)
+                if ((gridSize.y + 1) % 2 != 0)
                 {
                     multiple = 1;
                 }
@@ -491,7 +640,7 @@ namespace GridSpace
             }
 
             {
-                if (gridSize.z % 2 != 0)
+                if ((gridSize.z + 1) % 2 != 0)
                 {
                     multiple = 1;
                 }
@@ -518,7 +667,7 @@ namespace GridSpace
 
         Vector3 Recenter(Vector3 _center, Vector3 roundOffTo)
         {
-            Debug.Log( gridCenter.x % gridCellSize.x);
+            Debug.Log(gridCenter.x % gridCellSize.x);
 
             //roundOffTo += new Vector3(gridCenter.x % gridCellSize.x, gridCenter.y % gridCellSize.y, gridCenter.z % gridCellSize.z);
 
@@ -591,19 +740,19 @@ namespace GridSpace
             _size.x = Mathf.Ceil(_size.x / roundOffTo.x) * roundOffTo.x;
             if (_size.x % (gridCellSize.x * 2) == 0) { _size.x += gridCellSize.x; }
 
-            if (_center.x + (_size.x / 2) > gridCenter.x + (gridSize.x * gridCellSize.x) / 2 ||
-                _center.x - (_size.x / 2) < gridCenter.x - (gridSize.x * gridCellSize.x) / 2)//checking if Highlighed area is out of the grid
+            if (_center.x + (_size.x / 2) > gridCenter.x + ((gridSize.x + 1) * gridCellSize.x) / 2 ||
+                _center.x - (_size.x / 2) < gridCenter.x - ((gridSize.x + 1) * gridCellSize.x) / 2)//checking if Highlighed area is out of the grid
             {
                 //Debug.Log(_size.x);
-                float trimX = Mathf.Abs(_center.x - gridCenter.x) + (_size.x / 2) - (gridSize.x * gridCellSize.x) / 2;// Triming out grid Highlighed area
+                float trimX = Mathf.Abs(_center.x - gridCenter.x) + (_size.x / 2) - ((gridSize.x + 1) * gridCellSize.x) / 2;// Triming out grid Highlighed area
                 trimX += gridCellSize.x / 2;
                 if (_center.x - gridCenter.x < 0)
                 {
-                    _center.x += trimX/2;
+                    _center.x += trimX / 2;
                 }
                 else if (_center.x - gridCenter.x > 0)
                 {
-                    _center.x -= trimX/2;
+                    _center.x -= trimX / 2;
                 }
                 _size.x -= trimX;
 
@@ -613,10 +762,10 @@ namespace GridSpace
             _size.y = Mathf.Ceil(_size.y / roundOffTo.y) * roundOffTo.y;
             if (_size.y % (gridCellSize.y * 2) == 0) { _size.y += gridCellSize.y; }
 
-            if (_center.y + (_size.y / 2) > gridCenter.y + (gridSize.y * gridCellSize.y) / 2 ||
-                _center.y - (_size.y / 2) < gridCenter.y - (gridSize.y * gridCellSize.y) / 2)//checking if Highlighed area is out of the grid
+            if (_center.y + (_size.y / 2) > gridCenter.y + ((gridSize.y + 1) * gridCellSize.y) / 2 ||
+                _center.y - (_size.y / 2) < gridCenter.y - ((gridSize.y + 1) * gridCellSize.y) / 2)//checking if Highlighed area is out of the grid
             {
-                float trimY = Mathf.Abs(_center.y - gridCenter.y) + (_size.y / 2) - (gridSize.y * gridCellSize.y) / 2;// Triming out grid Highlighed area
+                float trimY = Mathf.Abs(_center.y - gridCenter.y) + (_size.y / 2) - ((gridSize.y + 1) * gridCellSize.y) / 2;// Triming out grid Highlighed area
                 trimY += gridCellSize.y / 2;
                 if (_center.y - gridCenter.y < 0)
                 {
@@ -632,10 +781,10 @@ namespace GridSpace
             _size.z = Mathf.Ceil(_size.z / roundOffTo.z) * roundOffTo.z;
             if (_size.z % (gridCellSize.z * 2) == 0) { _size.z += gridCellSize.z; }
 
-            if (_center.z + (_size.z / 2) > gridCenter.z + (gridSize.z * gridCellSize.z) / 2 ||
-                _center.y - (_size.z / 2) < gridCenter.z - (gridSize.z * gridCellSize.z) / 2)//checking if Highlighed area is out of the grid
+            if (_center.z + (_size.z / 2) > gridCenter.z + ((gridSize.z + 1) * gridCellSize.z) / 2 ||
+                _center.y - (_size.z / 2) < gridCenter.z - ((gridSize.z + 1) * gridCellSize.z) / 2)//checking if Highlighed area is out of the grid
             {
-                float trimZ = Mathf.Abs(_center.z - gridCenter.z) + (_size.z / 2) - (gridSize.z * gridCellSize.z) / 2;// Triming out grid Highlighed area
+                float trimZ = Mathf.Abs(_center.z - gridCenter.z) + (_size.z / 2) - ((gridSize.z + 1) * gridCellSize.z) / 2;// Triming out grid Highlighed area
                 trimZ += gridCellSize.z / 2;
                 if (_center.z - gridCenter.z < 0)
                 {
@@ -648,11 +797,11 @@ namespace GridSpace
                 _size.z -= trimZ;
             }
 
-            return new Vector3[] {_size, _center};
+            return new Vector3[] { _size, _center };
         }
 
 
-           
+
 
 
         void DrawSolidCube(Vector3 _center, Vector3 _size, Color _color)
@@ -789,35 +938,119 @@ namespace GridSpace
 
         static public Vector2Int GetGridSize()
         {
-            if(gridOrientation == GridOrientation.xy)
+            if (gridOrientation == GridOrientation.xy)
             {
-                return new Vector2Int(gridSize.x, gridSize.y);
+                return new Vector2Int((gridSize.x + 1), (gridSize.y + 1));
             }
             else if (gridOrientation == GridOrientation.yz)
             {
-                return new Vector2Int(gridSize.z, gridSize.y);
+                return new Vector2Int((gridSize.z + 1), (gridSize.y + 1));
             }
             else
             {
-                return new Vector2Int(gridSize.z, gridSize.x);
+                return new Vector2Int((gridSize.z + 1), (gridSize.x + 1));
             }
         }
 
 
-        bool IsInsideGrid(Vector3 position)
+        static private bool IsInsideGrid(Vector3 _position)
         {
 
-            if (position.x <= (gridCenter.x - (gridSize.x * gridCellSize.x)/2) || position.x >= (gridCenter.x + (gridSize.x * gridCellSize.x)/ 2))
+            if (_position.x <= (gridCenter.x - ((gridSize.x + 1) * gridCellSize.x) / 2) || _position.x >= (gridCenter.x + ((gridSize.x + 1) * gridCellSize.x) / 2))
                 return false;
 
-            if (position.y <= (gridCenter.y - (gridSize.y * gridCellSize.y) / 2) || position.y >= (gridCenter.y + (gridSize.y * gridCellSize.y) / 2))
+            if (_position.y <= (gridCenter.y - ((gridSize.y + 1) * gridCellSize.y) / 2) || _position.y >= (gridCenter.y + ((gridSize.y + 1) * gridCellSize.y) / 2))
                 return false;
 
-            if (position.z <= (gridCenter.z - (gridSize.z * gridCellSize.z) / 2) || position.z >= (gridCenter.z + (gridSize.z * gridCellSize.z) / 2))
+            if (_position.z <= (gridCenter.z - ((gridSize.z + 1) * gridCellSize.z) / 2) || _position.z >= (gridCenter.z + ((gridSize.z + 1) * gridCellSize.z) / 2))
                 return false;
 
             return true;
 
+        }
+
+        static public Vector2Int ObjectIndex(Vector3 _position)
+        {
+
+
+            if (IsInsideGrid(_position) && IsSnaped(_position))
+            {
+                Vector3 _indexes = Vector3.zero;
+
+                //_indexes.x = Mathf.Abs((((float)gridSize.x + 1)/2) - gridCenter.x) + (_position.x / gridCellSize.x)  - 1;
+
+                _indexes.x = ((( (gridSize.x + 1) * gridCellSize.x / 2) + (_position.x - gridCenter.x)) / gridCellSize.x) - 1;
+
+                _indexes.y = ((( (gridSize.y + 1) * gridCellSize.y / 2) + (_position.y - gridCenter.y)) / gridCellSize.y) - 1;
+
+                _indexes.z = ((( (gridSize.z + 1) * gridCellSize.z / 2) + (_position.z - gridCenter.z)) / gridCellSize.z) - 1;
+
+
+                if (gridOrientation == GridOrientation.xy)
+                    return new Vector2Int((int)_indexes.x, (int)_indexes.y);
+
+                else if (gridOrientation == GridOrientation.yz)
+                    return new Vector2Int((int)_indexes.y, (int)_indexes.z);
+
+                else if (gridOrientation == GridOrientation.zx)
+                    return new Vector2Int((int)_indexes.z, (int)_indexes.x);
+            }
+
+            return new Vector2Int(-1, -1);
+            
+
+        }
+
+
+        static private bool IsSnaped(Vector3 _position)
+        {
+
+            float temOffsetX = gridCellSize.x / 2;
+            if (gridOrientation != GridOrientation.yz)
+            {
+                if ((gridSize.x + 1) % 2 == 0)
+                {
+                    if (Mathf.Abs(_position.x - ((Mathf.Round((_position.x - gridCenter.x) / gridCellSize.x) * gridCellSize.x) + gridCenter.x)) > precisionLimit)
+                        return false;
+                }
+                else
+                {
+                    if (Mathf.Abs(_position.x - ((Mathf.Round((_position.x - temOffsetX - gridCenter.x) / gridCellSize.x) * gridCellSize.x) + temOffsetX + gridCenter.x)) > precisionLimit)
+                        return false;
+                }
+            }
+
+            if (gridOrientation != GridOrientation.zx)
+            {
+                float temOffsetY = gridCellSize.y / 2;
+                if ((gridSize.y + 1) % 2 == 0)
+                {
+                    if (Mathf.Abs(_position.y - ((Mathf.Round((_position.y - gridCenter.y) / gridCellSize.y) * gridCellSize.y) + gridCenter.y)) > precisionLimit)
+                        return false;
+                }
+                else
+                {
+                    if (Mathf.Abs(_position.y - ((Mathf.Round((_position.y - temOffsetY - gridCenter.y) / gridCellSize.y) * gridCellSize.y) + temOffsetY + gridCenter.y)) > precisionLimit)
+                        return false;
+                }
+            }
+
+            if (gridOrientation != GridOrientation.xy)
+            {
+                float temOffsetZ = gridCellSize.z / 2;
+                if ((gridSize.z + 1) % 2 == 0)
+                {
+                    if (Mathf.Abs(_position.z - ((Mathf.Round((_position.z - gridCenter.z) / gridCellSize.z) * gridCellSize.z) + gridCenter.z)) > precisionLimit)
+                        return false;
+                }
+                else
+                {
+                    if (Mathf.Abs(_position.z - ((Mathf.Round((_position.z - temOffsetZ - gridCenter.z) / gridCellSize.z) * gridCellSize.z) + temOffsetZ + gridCenter.z)) > precisionLimit)
+                        return false;
+                }
+            }
+
+            return true;
         }
 
 
