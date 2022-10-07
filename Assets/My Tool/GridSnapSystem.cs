@@ -21,8 +21,16 @@ namespace GridSpace
         static Color gridColor = Color.green;
         static ObjectKind objectKind = new ObjectKind();
         static int objectKindLayer = 0;
+<<<<<<< Updated upstream
         static string objectKindTag = "Untagged";
 
+=======
+        static int objectKindLayerCopy = 0;
+        static string objectKindTag = "Untagged";
+        static string objectKindTagCopy = "Untagged";
+        
+        private List<GameObject> gridObjects = null;
+>>>>>>> Stashed changes
 
         private List<Transform> trackOfSelectedTransforms;
         private List<Vector3> trackOfSelectedTransformsPosition;
@@ -54,6 +62,7 @@ namespace GridSpace
 
         private void OnGUI()
         {
+<<<<<<< Updated upstream
             GUILayout.Label("Base Settings", EditorStyles.largeLabel);
             gridSize = EditorGUILayout.Vector3IntField("Grid Size", gridSize);
             gridCellSize = EditorGUILayout.Vector3Field("Grid Cell Size", gridCellSize);
@@ -113,6 +122,114 @@ namespace GridSpace
 
             EditorGUILayout.EndHorizontal();
             
+=======
+
+            //-------------------------Grid Variables--------------------------------
+            GUILayout.Label("Base Settings", EditorStyles.largeLabel);
+            
+            gridSize = EditorGUILayout.Vector3IntField("Grid Size", gridSize);
+            gridCellSize = EditorGUILayout.Vector3Field("Grid Cell Size", gridCellSize);
+            gridCenter = EditorGUILayout.Vector3Field("Grid Center", gridCenter);
+            gridColor = EditorGUILayout.ColorField("Grid Color", gridColor);
+            gridOrientation = (GridOrientation)EditorGUILayout.Popup("Orientation", (int)gridOrientation, System.Enum.GetNames(typeof(GridOrientation)));
+            
+            EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+            //-----------------------------------------------------------------------
+
+
+            //-------------------------Object assign variables-----------------------
+            objectKind = (ObjectKind)EditorGUILayout.Popup("Object Kind", (int)objectKind, System.Enum.GetNames(typeof(ObjectKind)));
+            if(objectKind == ObjectKind.ObjectTag)
+            {
+                objectKindTag = EditorGUI.TagField(EditorGUILayout.GetControlRect(), "Object Tag", objectKindTag);
+            }
+            else if (objectKind == ObjectKind.ObjectLayer)
+            {
+                objectKindLayer = EditorGUI.LayerField(EditorGUILayout.GetControlRect(), "Object Layer", objectKindLayer);
+            }
+
+            
+            Rect assignButtonRect = new Rect(EditorGUILayout.GetControlRect().width/2 - 100 + 1, EditorGUILayout.GetControlRect().y - 1, 200, 24);
+            if(GUI.Button(assignButtonRect, "Assign Objects"))//assign button
+            {
+                if (objectKind == ObjectKind.ObjectTag)
+                {
+                    GridExtened.AssignObjects(objectKindTag, objectKind);
+                    objectKindTagCopy = "";
+                }
+                else if(objectKind == ObjectKind.ObjectLayer)
+                {
+                    GridExtened.AssignObjects(LayerMask.LayerToName(objectKindLayer), objectKind);
+                    objectKindLayerCopy = -1;
+                }
+            }
+            //-----------------------------------------------------------------------
+
+
+
+            //-------------------------Scroll View for Assigned objects-----------------------
+            EditorGUILayout.BeginHorizontal(GUILayout.Height(144));
+            #region Some Defined Values for Scroll View
+            Rect rectPosition = EditorGUILayout.GetControlRect();
+            Rect rectBox = new Rect(rectPosition.x, rectPosition.y + 18, rectPosition.width, 144);
+
+            EditorGUI.DrawRect(rectBox, new Color(0.1764706f, 0.1764706f, 0.1764706f, 0.7176471f));
+
+            Rect viewRect = new Rect(rectBox.x, rectBox.y, rectBox.width, (gridObjects != null? gridObjects.Count : 0) * rectPosition.height);
+            scrollPosition = GUI.BeginScrollView(rectBox, scrollPosition, viewRect, false, (gridObjects != null ? true : false), GUIStyle.none, GUI.skin.verticalScrollbar);
+
+            rectPosition.height += 2;
+            int viewCount = 18;
+            int firstIndex = (int)(scrollPosition.y / rectPosition.height);
+            Rect assignedButtonPosition = new Rect(rectBox.x, rectBox.y + (firstIndex * rectPosition.height + 2), rectBox.width * 0.65f, 18);
+            Rect assignedButtonDeletePosition = new Rect(rectBox.x + (float)(rectBox.width * 0.65), rectBox.y + (firstIndex * rectPosition.height + 2), rectBox.width * 0.35f, 18);
+
+            this.SetAssignedButtonTexture();
+            this.SetAssignedDeleteButtonTexture();
+            #endregion
+
+            if (objectKindTag != objectKindTagCopy || objectKindLayer != objectKindLayerCopy)
+            {
+                gridObjects = null;
+                if (objectKind == ObjectKind.ObjectTag)
+                {
+                    gridObjects = GridExtened.GetObjects(objectKindTag, objectKind);
+                    objectKindTagCopy = objectKindTag;
+                }
+                else if (objectKind == ObjectKind.ObjectLayer)
+                {
+                    gridObjects = GridExtened.GetObjects(LayerMask.LayerToName(objectKindLayer), objectKind);
+                    objectKindLayer = objectKindLayerCopy;
+                }
+                    
+            }
+            if (gridObjects == null)
+            {
+                GUI.Label(new Rect(rectBox.x + (rectBox.width / 2) - 85, rectBox.y + (rectBox.height / 2) - 50, 170, 90), "You can assign objects in \nthe grid based on tag/layer" +
+                    "\n\n            Click On The \n        'Assign Objects'\nYour objects will show here");
+            }
+            else
+            {
+                int counter = 0;
+                for (int i = firstIndex; i < Mathf.Min(gridObjects != null ? gridObjects.Count : 0, firstIndex + viewCount); i++)
+                {
+
+                    GUI.Button(assignedButtonPosition, "  >   " + gridObjects[counter].name, assignedButtonStyle);
+                    GUI.Button(assignedButtonDeletePosition, "Delete", assignedDeleteButtonStyle);
+
+
+                    assignedButtonPosition.y += rectPosition.height;
+                    assignedButtonDeletePosition.y += rectPosition.height;
+
+                    counter++;
+                }
+                
+            }
+            GUI.EndScrollView();
+            EditorGUILayout.EndHorizontal();
+            //-----------------------------------------------------------------------
+
+>>>>>>> Stashed changes
 
             //Repaint();
             SceneView.RepaintAll();
@@ -190,7 +307,11 @@ namespace GridSpace
 
         void OnEnable()
         {
+<<<<<<< Updated upstream
 
+=======
+            gridObjects = null;
+>>>>>>> Stashed changes
             this.trackOfSelectedTransforms = new List<Transform>();
             this.trackOfSelectedTransformsPosition = new List<Vector3>();
 
@@ -198,7 +319,11 @@ namespace GridSpace
         }
         void OnDisable()
         {
+<<<<<<< Updated upstream
 
+=======
+            gridObjects = null;
+>>>>>>> Stashed changes
             this.trackOfSelectedTransforms.Clear();
             this.trackOfSelectedTransformsPosition.Clear();
             this.trackOfSelectedTransforms = null;
@@ -777,6 +902,7 @@ namespace GridSpace
                 }
                 _size.y -= trimY;
             }
+<<<<<<< Updated upstream
 
             _size.z = Mathf.Ceil(_size.z / roundOffTo.z) * roundOffTo.z;
             if (_size.z % (gridCellSize.z * 2) == 0) { _size.z += gridCellSize.z; }
@@ -804,6 +930,35 @@ namespace GridSpace
 
 
 
+=======
+
+            _size.z = Mathf.Ceil(_size.z / roundOffTo.z) * roundOffTo.z;
+            if (_size.z % (gridCellSize.z * 2) == 0) { _size.z += gridCellSize.z; }
+
+            if (_center.z + (_size.z / 2) > gridCenter.z + ((gridSize.z + 1) * gridCellSize.z) / 2 ||
+                _center.y - (_size.z / 2) < gridCenter.z - ((gridSize.z + 1) * gridCellSize.z) / 2)//checking if Highlighed area is out of the grid
+            {
+                float trimZ = Mathf.Abs(_center.z - gridCenter.z) + (_size.z / 2) - ((gridSize.z + 1) * gridCellSize.z) / 2;// Triming out grid Highlighed area
+                trimZ += gridCellSize.z / 2;
+                if (_center.z - gridCenter.z < 0)
+                {
+                    _center.z += trimZ / 2;
+                }
+                else if (_center.z - gridCenter.z > 0)
+                {
+                    _center.z -= trimZ / 2;
+                }
+                _size.z -= trimZ;
+            }
+
+            return new Vector3[] { _size, _center };
+        }
+
+
+
+
+
+>>>>>>> Stashed changes
         void DrawSolidCube(Vector3 _center, Vector3 _size, Color _color)
         {
             _size.x = Mathf.Abs(_size.x);
@@ -923,6 +1078,7 @@ namespace GridSpace
 
                 return;
             }
+<<<<<<< Updated upstream
         }
         //-------------------------------------------------------------------------------------------
         #endregion
@@ -951,6 +1107,36 @@ namespace GridSpace
                 return new Vector2Int((gridSize.z + 1), (gridSize.x + 1));
             }
         }
+=======
+        }
+        //-------------------------------------------------------------------------------------------
+        #endregion
+
+
+
+
+
+
+
+
+        #region Access
+
+        static public Vector2Int GetGridSize()
+        {
+            if (gridOrientation == GridOrientation.xy)
+            {
+                return new Vector2Int((gridSize.x + 1), (gridSize.y + 1));
+            }
+            else if (gridOrientation == GridOrientation.yz)
+            {
+                return new Vector2Int((gridSize.z + 1), (gridSize.y + 1));
+            }
+            else
+            {
+                return new Vector2Int((gridSize.z + 1), (gridSize.x + 1));
+            }
+        }
+>>>>>>> Stashed changes
 
 
         static private bool IsInsideGrid(Vector3 _position)
